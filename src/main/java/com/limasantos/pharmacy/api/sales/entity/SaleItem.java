@@ -22,6 +22,7 @@ public class SaleItem {
         private Long id;
 
         @ManyToOne(fetch = FetchType.LAZY)
+
         @JoinColumn(name = "sale_id", nullable = false)
         @NotNull
         private Sale sale;
