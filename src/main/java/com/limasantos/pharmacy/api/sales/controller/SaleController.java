@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/sales")
+@RequestMapping("/sales")
 @Tag(name = "Vendas", description = "Registro de vendas, consultas por cliente e consolidação de totais")
 public class SaleController {
 
@@ -36,161 +36,250 @@ public class SaleController {
         this.saleService = saleService;
     }
 
-    @PostMapping
+
+    //create sale
+    @PostMapping("/create")
     @Operation(summary = "Criar venda", description = "Registra uma nova venda com itens, cliente e forma de pagamento.")
-    public ResponseEntity<ApiResponse<SaleResponse>> create(@Valid @RequestBody CreateSaleDTO dto,
-                                                            HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<SaleResponse>> create(
+            @Valid @RequestBody CreateSaleDTO dto,
+            HttpServletRequest request) {
         SaleDTO created = saleService.createSale(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.<SaleResponse>builder()
-                        .success(true)
-                        .message("Venda criada com sucesso")
-                        .code("SALE_CREATED")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(SaleResponse.fromDto(created))
-                        .build()
+
+        return createdResponse(
+                "Venda criada com sucesso",
+                "SALE_CREATED",
+                SaleResponse.fromDto(created),
+                request
+
         );
+
+
     }
 
+
+    //search sale by id
     @GetMapping("/{id}")
     @Operation(summary = "Buscar venda por ID", description = "Retorna os dados resumidos de uma venda.")
-    public ResponseEntity<ApiResponse<SaleResponse>> findById(@PathVariable Long id,
-                                                              HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<SaleResponse>> findById(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+
         SaleDTO sale = saleService.findById(id);
-        return ResponseEntity.ok(
-                ApiResponse.<SaleResponse>builder()
-                        .success(true)
-                        .message("Venda encontrada")
-                        .code("SALE_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(SaleResponse.fromDto(sale))
-                        .build()
+
+        return okResponse(
+                "Venda encontrada",
+                "SALE_FOUND",
+                SaleResponse.fromDto(sale),
+                request
+
         );
+
+
     }
 
-    @GetMapping("/{id}/detail")
+
+    //search sale details by id
+    @GetMapping("/searchDetails/{id}")
     @Operation(summary = "Buscar detalhes da venda", description = "Retorna itens detalhados e metadados da venda.")
-    public ResponseEntity<ApiResponse<SaleDetailDTO>> findDetailById(@PathVariable Long id,
-                                                                      HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<SaleDetailDTO>> findDetailById(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+
         SaleDetailDTO detail = saleService.findDetailById(id);
-        return ResponseEntity.ok(
-                ApiResponse.<SaleDetailDTO>builder()
-                        .success(true)
-                        .message("Detalhes da venda encontrados")
-                        .code("SALE_DETAIL_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(detail)
-                        .build()
+
+        return okResponse(
+                "Detalhes da venda encontrados",
+                "SALE_DETAIL_FOUND",
+                detail,
+                request
+
         );
     }
 
-    @GetMapping
+
+    //list all sales
+    @GetMapping("/all")
     @Operation(summary = "Listar vendas", description = "Retorna todas as vendas em envelope paginado padrão.")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lista de vendas", content = @Content(schema = @Schema(implementation = PaginatedResponse.class)))
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Lista de vendas",
+                    content = @Content(schema = @Schema(implementation = PaginatedResponse.class)))
     })
     public ResponseEntity<PaginatedResponse<SaleListResponse>> findAll(HttpServletRequest request) {
         List<SaleListResponse> sales = saleService.findAll().stream()
                 .map(SaleListResponse::fromDto)
                 .toList();
-        return ResponseEntity.ok(
-                PaginatedResponse.<SaleListResponse>paginatedBuilder()
-                        .success(true)
-                        .message("Vendas recuperadas com sucesso")
-                        .code("SALES_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(sales)
-                        .page(0)
-                        .pageSize(sales.size())
-                        .totalElements(sales.size())
-                        .totalPages(sales.isEmpty() ? 0 : 1)
-                        .hasNext(false)
-                        .hasPrevious(false)
-                        .build()
-        );
+
+
+        return okPaginatedResponse("Vendas recuperadas com sucesso", "SALES_FOUND", sales, request);
+
+
     }
 
+
+    //list sales by customer
     @GetMapping("/customer/{customerId}")
     @Operation(summary = "Listar vendas por cliente", description = "Filtra as vendas associadas a um cliente específico.")
-    public ResponseEntity<PaginatedResponse<SaleListResponse>> findByCustomer(@PathVariable Long customerId,
-                                                                               HttpServletRequest request) {
+    public ResponseEntity<PaginatedResponse<SaleListResponse>> findByCustomer(
+            @PathVariable Long customerId,
+            HttpServletRequest request) {
         List<SaleListResponse> sales = saleService.findByCustomer(customerId).stream()
                 .map(SaleListResponse::fromDto)
                 .toList();
+
+        return okPaginatedResponse("Vendas do cliente recuperadas", "CUSTOMER_SALES_FOUND", sales, request);
+
+
+    }
+
+
+    //get total sales amount
+    @GetMapping("/total/amount")
+    @Operation(summary = "Obter total geral de vendas", description = "Calcula e retorna o total financeiro de todas as vendas.")
+    public ResponseEntity<ApiResponse<SaleTotalResponse>> getTotalSalesAmount(HttpServletRequest request) {
+
+        BigDecimal total = saleService.getTotalSalesAmount();
+        return okResponse(
+
+                "Total de vendas calculado",
+                "SALES_TOTAL_FOUND",
+                new SaleTotalResponse(total),
+                request
+
+        );
+
+
+    }
+
+
+    //get total sales amount by customer
+    @GetMapping("/customer/{customerId}/total")
+    @Operation(summary = "Obter total de vendas por cliente", description = "Calcula o valor total vendido para um cliente específico.")
+    public ResponseEntity<ApiResponse<SaleTotalResponse>> getCustomerTotalSales(
+            @PathVariable Long customerId,
+            HttpServletRequest request) {
+
+        BigDecimal total = saleService.getCustomerTotalSales(customerId);
+
+        return okResponse(
+                "Total de vendas do cliente calculado",
+                "CUSTOMER_SALES_TOTAL_FOUND",
+                new SaleTotalResponse(total),
+                request
+
+        );
+
+
+    }
+
+
+    //cancel sale
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Cancelar venda", description = "Cancela uma venda pelo ID e retorna confirmação da operação.")
+    public ResponseEntity<ApiResponse<DeleteResponse>> cancelSale(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+
+        saleService.cancelSale(id);
+
+        return okResponse(
+
+                "Venda cancelada com sucesso",
+                "SALE_CANCELED",
+                new DeleteResponse(id, true),
+                request
+
+        );
+
+    }
+
+
+
+
+
+    /// methods to build responses
+    private <T> ResponseEntity<ApiResponse<T>> createdResponse(
+            String message,
+            String code,
+            T data,
+            HttpServletRequest request
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(buildApiResponse(message, code, data, request));
+
+    }
+
+
+    private <T> ResponseEntity<ApiResponse<T>> okResponse(
+            String message,
+            String code,
+            T data,
+            HttpServletRequest request
+    ) {
+
+        return ResponseEntity
+                .ok(buildApiResponse(message, code, data, request));
+
+    }
+
+
+    private <T> ApiResponse<T> buildApiResponse(
+            String message,
+            String code,
+            T data,
+            HttpServletRequest request
+    ) {
+
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .code(code)
+                .timestamp(LocalDateTime.now())
+                .path(resolvePath(request))
+                .data(data)
+                .build();
+
+    }
+
+
+    private <T> ResponseEntity<PaginatedResponse<T>> okPaginatedResponse(
+            String message,
+            String code,
+            List<T> data,
+            HttpServletRequest request
+    ) {
+
         return ResponseEntity.ok(
-                PaginatedResponse.<SaleListResponse>paginatedBuilder()
+                PaginatedResponse.<T>paginatedBuilder()
                         .success(true)
-                        .message("Vendas do cliente recuperadas")
-                        .code("CUSTOMER_SALES_FOUND")
+                        .message(message)
+                        .code(code)
                         .timestamp(LocalDateTime.now())
                         .path(resolvePath(request))
-                        .data(sales)
+                        .data(data)
                         .page(0)
-                        .pageSize(sales.size())
-                        .totalElements(sales.size())
-                        .totalPages(sales.isEmpty() ? 0 : 1)
+                        .pageSize(data.size())
+                        .totalElements(data.size())
+                        .totalPages(data.isEmpty() ? 0 : 1)
                         .hasNext(false)
                         .hasPrevious(false)
                         .build()
         );
+
     }
 
-    @GetMapping("/total/amount")
-    @Operation(summary = "Obter total geral de vendas", description = "Calcula e retorna o total financeiro de todas as vendas.")
-    public ResponseEntity<ApiResponse<SaleTotalResponse>> getTotalSalesAmount(HttpServletRequest request) {
-        BigDecimal total = saleService.getTotalSalesAmount();
-        return ResponseEntity.ok(
-                ApiResponse.<SaleTotalResponse>builder()
-                        .success(true)
-                        .message("Total de vendas calculado")
-                        .code("SALES_TOTAL_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(new SaleTotalResponse(total))
-                        .build()
-        );
-    }
-
-    @GetMapping("/customer/{customerId}/total")
-    @Operation(summary = "Obter total de vendas por cliente", description = "Calcula o valor total vendido para um cliente específico.")
-    public ResponseEntity<ApiResponse<SaleTotalResponse>> getCustomerTotalSales(@PathVariable Long customerId,
-                                                                                 HttpServletRequest request) {
-        BigDecimal total = saleService.getCustomerTotalSales(customerId);
-        return ResponseEntity.ok(
-                ApiResponse.<SaleTotalResponse>builder()
-                        .success(true)
-                        .message("Total de vendas do cliente calculado")
-                        .code("CUSTOMER_SALES_TOTAL_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(new SaleTotalResponse(total))
-                        .build()
-        );
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Cancelar venda", description = "Cancela uma venda pelo ID e retorna confirmação da operação.")
-    public ResponseEntity<ApiResponse<DeleteResponse>> cancelSale(@PathVariable Long id,
-                                                                   HttpServletRequest request) {
-        saleService.cancelSale(id);
-        return ResponseEntity.ok(
-                ApiResponse.<DeleteResponse>builder()
-                        .success(true)
-                        .message("Venda cancelada com sucesso")
-                        .code("SALE_CANCELED")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(new DeleteResponse(id, true))
-                        .build()
-        );
-    }
 
     private String resolvePath(HttpServletRequest request) {
+
         String queryString = request.getQueryString();
-        return queryString == null ? request.getRequestURI() : request.getRequestURI() + "?" + queryString;
+
+        return (queryString == null)
+                ? request.getRequestURI()
+                : request.getRequestURI() + "?" + queryString;
+
     }
+
 }

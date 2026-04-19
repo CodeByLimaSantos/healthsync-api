@@ -28,284 +28,381 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/financial")
+@RequestMapping("/financial")
 @Tag(name = "Financeiro", description = "Operações de contas a pagar, contas a receber e consolidação financeira")
 public class FinancialController {
 
     private final FinancialService financialService;
 
+
+
     public FinancialController(FinancialService financialService) {
+
         this.financialService = financialService;
+
     }
 
 
 
-    @PostMapping
+    // create financial
+    @PostMapping("/create")
     @Operation(summary = "Criar lançamento financeiro", description = "Cria um novo lançamento financeiro com base nos dados informados.")
-
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Lançamento criado", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dados inválidos"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Erro interno")
     })
+    public ResponseEntity<ApiResponse<FinancialResponse>> create(
+            @Valid @RequestBody CreateFinancialDTO dto,
+            HttpServletRequest request
+    ) {
 
-    public ResponseEntity<ApiResponse<FinancialResponse>> create(@Valid @RequestBody CreateFinancialDTO dto,
-                                                                 HttpServletRequest request) {
         FinancialDTO created = financialService.createFinancial(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.<FinancialResponse>builder()
-                        .success(true)
-                        .message("Lançamento financeiro criado com sucesso")
-                        .code("FINANCIAL_CREATED")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(FinancialResponse.fromDto(created))
-                        .build()
+
+        return createdResponse(
+                "Lançamento financeiro criado com sucesso",
+                "FINANCIAL_CREATED",
+                FinancialResponse.fromDto(created),
+                request
         );
+
     }
 
-    @GetMapping("/{id}")
+
+
+    // search by id
+    @GetMapping("/search/{id}")
     @Operation(summary = "Buscar lançamento por ID", description = "Retorna um lançamento financeiro resumido pelo identificador.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lançamento encontrado", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Lançamento não encontrado")
-    })
-    public ResponseEntity<ApiResponse<FinancialResponse>> findById(@PathVariable Long id,
-                                                                    HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<FinancialResponse>> findById(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
+
         FinancialDTO financial = financialService.findById(id);
-        return ResponseEntity.ok(
-                ApiResponse.<FinancialResponse>builder()
-                        .success(true)
-                        .message("Lançamento financeiro encontrado")
-                        .code("FINANCIAL_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(FinancialResponse.fromDto(financial))
-                        .build()
+
+        return okResponse(
+                "Lançamento financeiro encontrado",
+                "FINANCIAL_FOUND",
+                FinancialResponse.fromDto(financial),
+                request
         );
+
     }
 
-    @GetMapping("/{id}/detail")
+
+
+    // search detail
+    @GetMapping("/detail/{id}")
     @Operation(summary = "Buscar detalhes do lançamento", description = "Retorna os dados detalhados de um lançamento financeiro por ID.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Detalhes encontrados", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Lançamento não encontrado")
-    })
-    public ResponseEntity<ApiResponse<FinancialDetailDTO>> findDetailById(@PathVariable Long id,
-                                                                           HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<FinancialDetailDTO>> findDetailById(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
+
         FinancialDetailDTO detail = financialService.findDetailById(id);
-        return ResponseEntity.ok(
-                ApiResponse.<FinancialDetailDTO>builder()
-                        .success(true)
-                        .message("Detalhes do lançamento financeiro encontrados")
-                        .code("FINANCIAL_DETAIL_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(detail)
-                        .build()
+
+        return okResponse(
+                "Detalhes do lançamento financeiro encontrados",
+                "FINANCIAL_DETAIL_FOUND",
+                detail,
+                request
         );
+
     }
 
 
+
+    // list all
     @GetMapping
     @Operation(summary = "Listar lançamentos financeiros", description = "Retorna todos os lançamentos financeiros no envelope paginado da API.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lista carregada", content = @Content(schema = @Schema(implementation = PaginatedResponse.class)))
-    })
-    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findAll(HttpServletRequest request) {
-        List<FinancialListResponse> financials = financialService.findAll().stream()
+    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findAll(
+            HttpServletRequest request
+    ) {
+
+        List<FinancialListResponse> financials = financialService.findAll()
+                .stream()
                 .map(FinancialListResponse::fromDto)
                 .toList();
-        return ResponseEntity.ok(
-                PaginatedResponse.<FinancialListResponse>paginatedBuilder()
-                        .success(true)
-                        .message("Lançamentos financeiros recuperados")
-                        .code("FINANCIALS_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(financials)
-                        .page(0)
-                        .pageSize(financials.size())
-                        .totalElements(financials.size())
-                        .totalPages(financials.isEmpty() ? 0 : 1)
-                        .hasNext(false)
-                        .hasPrevious(false)
-                        .build()
+
+        return okPaginatedResponse(
+                "Lançamentos financeiros recuperados",
+                "FINANCIALS_FOUND",
+                financials,
+                request
         );
+
     }
 
+
+
+    // pending
     @GetMapping("/pending")
-    @Operation(summary = "Listar lançamentos pendentes", description = "Retorna lançamentos financeiros com status pendente.")
-    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findPending(HttpServletRequest request) {
-        List<FinancialListResponse> pending = financialService.findPending().stream()
+    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findPending(
+            HttpServletRequest request
+    ) {
+
+        List<FinancialListResponse> pending = financialService.findPending()
+                .stream()
                 .map(FinancialListResponse::fromDto)
                 .toList();
-        return ResponseEntity.ok(
-                PaginatedResponse.<FinancialListResponse>paginatedBuilder()
-                        .success(true)
-                        .message("Pendências financeiras recuperadas")
-                        .code("FINANCIAL_PENDING_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(pending)
-                        .page(0)
-                        .pageSize(pending.size())
-                        .totalElements(pending.size())
-                        .totalPages(pending.isEmpty() ? 0 : 1)
-                        .hasNext(false)
-                        .hasPrevious(false)
-                        .build()
+
+        return okPaginatedResponse(
+                "Pendências financeiras recuperadas",
+                "FINANCIAL_PENDING_FOUND",
+                pending,
+                request
         );
+
     }
 
+
+
+    // overdue
     @GetMapping("/overdue")
-    @Operation(summary = "Listar lançamentos vencidos", description = "Retorna lançamentos com vencimento expirado e ainda não quitados.")
-    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findOverdue(HttpServletRequest request) {
-        List<FinancialListResponse> overdue = financialService.findOverdue().stream()
+    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findOverdue(
+            HttpServletRequest request
+    ) {
+
+        List<FinancialListResponse> overdue = financialService.findOverdue()
+                .stream()
                 .map(FinancialListResponse::fromDto)
                 .toList();
-        return ResponseEntity.ok(
-                PaginatedResponse.<FinancialListResponse>paginatedBuilder()
-                        .success(true)
-                        .message("Lançamentos vencidos recuperados")
-                        .code("FINANCIAL_OVERDUE_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(overdue)
-                        .page(0)
-                        .pageSize(overdue.size())
-                        .totalElements(overdue.size())
-                        .totalPages(overdue.isEmpty() ? 0 : 1)
-                        .hasNext(false)
-                        .hasPrevious(false)
-                        .build()
+
+        return okPaginatedResponse(
+                "Lançamentos vencidos recuperados",
+                "FINANCIAL_OVERDUE_FOUND",
+                overdue,
+                request
         );
+
     }
 
+
+
+    // receivable
     @GetMapping("/receivable")
-    @Operation(summary = "Listar contas a receber", description = "Retorna lançamentos classificados como contas a receber.")
-    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findReceivable(HttpServletRequest request) {
-        List<FinancialListResponse> receivable = financialService.findReceivable().stream()
+    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findReceivable(
+            HttpServletRequest request
+    ) {
+
+        List<FinancialListResponse> receivable = financialService.findReceivable()
+                .stream()
                 .map(FinancialListResponse::fromDto)
                 .toList();
-        return ResponseEntity.ok(
-                PaginatedResponse.<FinancialListResponse>paginatedBuilder()
-                        .success(true)
-                        .message("Contas a receber recuperadas")
-                        .code("FINANCIAL_RECEIVABLE_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(receivable)
-                        .page(0)
-                        .pageSize(receivable.size())
-                        .totalElements(receivable.size())
-                        .totalPages(receivable.isEmpty() ? 0 : 1)
-                        .hasNext(false)
-                        .hasPrevious(false)
-                        .build()
+
+        return okPaginatedResponse(
+                "Contas a receber recuperadas",
+                "FINANCIAL_RECEIVABLE_FOUND",
+                receivable,
+                request
         );
+
     }
 
+
+
+    // payable
     @GetMapping("/payable")
-    @Operation(summary = "Listar contas a pagar", description = "Retorna lançamentos classificados como contas a pagar.")
-    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findPayable(HttpServletRequest request) {
-        List<FinancialListResponse> payable = financialService.findPayable().stream()
+    public ResponseEntity<PaginatedResponse<FinancialListResponse>> findPayable(
+            HttpServletRequest request
+    ) {
+
+        List<FinancialListResponse> payable = financialService.findPayable()
+                .stream()
                 .map(FinancialListResponse::fromDto)
                 .toList();
+
+        return okPaginatedResponse(
+                "Contas a pagar recuperadas",
+                "FINANCIAL_PAYABLE_FOUND",
+                payable,
+                request
+        );
+
+    }
+
+
+
+    // update
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ApiResponse<FinancialResponse>> update(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateFinancialDTO dto,
+            HttpServletRequest request
+    ) {
+
+        FinancialDTO updated = financialService.update(id, dto);
+
+        return okResponse(
+                "Lançamento financeiro atualizado",
+                "FINANCIAL_UPDATED",
+                FinancialResponse.fromDto(updated),
+                request
+        );
+
+    }
+
+
+
+    // mark as paid
+    @PostMapping("/{id}/pay")
+    public ResponseEntity<ApiResponse<FinancialResponse>> markAsPaid(
+            @PathVariable Long id,
+            @RequestParam PaymentMethod paymentMethod,
+            HttpServletRequest request
+    ) {
+
+        FinancialDTO paid = financialService.markAsPaid(id, paymentMethod);
+
+        return okResponse(
+                "Lançamento marcado como pago",
+                "FINANCIAL_MARKED_PAID",
+                FinancialResponse.fromDto(paid),
+                request
+        );
+
+    }
+
+
+
+    // delete
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<ApiResponse<DeleteResponse>> delete(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
+
+        financialService.delete(id);
+
+        return okResponse(
+                "Lançamento financeiro removido",
+                "FINANCIAL_DELETED",
+                new DeleteResponse(id, true),
+                request
+        );
+
+    }
+
+
+
+    // summary
+    @GetMapping("/summary")
+    public ResponseEntity<ApiResponse<FinancialSummaryResponse>> generateSummary(
+            HttpServletRequest request
+    ) {
+
+        FinancialSummaryDTO summary = financialService.generateSummary();
+
+        return okResponse(
+                "Resumo financeiro gerado",
+                "FINANCIAL_SUMMARY_FOUND",
+                FinancialSummaryResponse.fromDto(summary),
+                request
+        );
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // helper methods
+    private <T> ResponseEntity<ApiResponse<T>> createdResponse(
+            String message,
+            String code,
+            T data,
+            HttpServletRequest request
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(buildApiResponse(message, code, data, request));
+
+    }
+
+
+
+    private <T> ResponseEntity<ApiResponse<T>> okResponse(
+            String message,
+            String code,
+            T data,
+            HttpServletRequest request
+    ) {
+
+        return ResponseEntity
+                .ok(buildApiResponse(message, code, data, request));
+
+    }
+
+
+
+    private <T> ApiResponse<T> buildApiResponse(
+            String message,
+            String code,
+            T data,
+            HttpServletRequest request
+    ) {
+
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .code(code)
+                .timestamp(LocalDateTime.now())
+                .path(resolvePath(request))
+                .data(data)
+                .build();
+
+    }
+
+
+
+    private <T> ResponseEntity<PaginatedResponse<T>> okPaginatedResponse(
+            String message,
+            String code,
+            List<T> data,
+            HttpServletRequest request
+    ) {
+
         return ResponseEntity.ok(
-                PaginatedResponse.<FinancialListResponse>paginatedBuilder()
+                PaginatedResponse.<T>paginatedBuilder()
                         .success(true)
-                        .message("Contas a pagar recuperadas")
-                        .code("FINANCIAL_PAYABLE_FOUND")
+                        .message(message)
+                        .code(code)
                         .timestamp(LocalDateTime.now())
                         .path(resolvePath(request))
-                        .data(payable)
+                        .data(data)
                         .page(0)
-                        .pageSize(payable.size())
-                        .totalElements(payable.size())
-                        .totalPages(payable.isEmpty() ? 0 : 1)
+                        .pageSize(data.size())
+                        .totalElements(data.size())
+                        .totalPages(data.isEmpty() ? 0 : 1)
                         .hasNext(false)
                         .hasPrevious(false)
                         .build()
         );
+
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Atualizar lançamento", description = "Atualiza um lançamento financeiro existente pelo ID.")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lançamento atualizado", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Lançamento não encontrado")
-    })
-    public ResponseEntity<ApiResponse<FinancialResponse>> update(@PathVariable Long id,
-                                                                 @Valid @RequestBody CreateFinancialDTO dto,
-                                                                 HttpServletRequest request) {
-        FinancialDTO updated = financialService.update(id, dto);
-        return ResponseEntity.ok(
-                ApiResponse.<FinancialResponse>builder()
-                        .success(true)
-                        .message("Lançamento financeiro atualizado")
-                        .code("FINANCIAL_UPDATED")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(FinancialResponse.fromDto(updated))
-                        .build()
-        );
-    }
 
-    @PostMapping("/{id}/pay")
-    @Operation(summary = "Marcar lançamento como pago", description = "Define o método de pagamento e altera o status do lançamento para pago.")
-    public ResponseEntity<ApiResponse<FinancialResponse>> markAsPaid(@PathVariable Long id,
-                                                                      @Parameter(description = "Método utilizado para pagamento", required = true)
-                                                                      @RequestParam PaymentMethod paymentMethod,
-                                                                      HttpServletRequest request) {
-        FinancialDTO paid = financialService.markAsPaid(id, paymentMethod);
-        return ResponseEntity.ok(
-                ApiResponse.<FinancialResponse>builder()
-                        .success(true)
-                        .message("Lançamento marcado como pago")
-                        .code("FINANCIAL_MARKED_PAID")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(FinancialResponse.fromDto(paid))
-                        .build()
-        );
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Remover lançamento", description = "Remove logicamente/fisicamente um lançamento financeiro conforme regra de negócio.")
-    public ResponseEntity<ApiResponse<DeleteResponse>> delete(@PathVariable Long id,
-                                                               HttpServletRequest request) {
-        financialService.delete(id);
-        return ResponseEntity.ok(
-                ApiResponse.<DeleteResponse>builder()
-                        .success(true)
-                        .message("Lançamento financeiro removido")
-                        .code("FINANCIAL_DELETED")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(new DeleteResponse(id, true))
-                        .build()
-        );
-    }
-
-    @GetMapping("/summary")
-    @Operation(summary = "Gerar resumo financeiro", description = "Consolida totais, pendências e vencimentos do financeiro em um resumo único.")
-    public ResponseEntity<ApiResponse<FinancialSummaryResponse>> generateSummary(HttpServletRequest request) {
-        FinancialSummaryDTO summary = financialService.generateSummary();
-        return ResponseEntity.ok(
-                ApiResponse.<FinancialSummaryResponse>builder()
-                        .success(true)
-                        .message("Resumo financeiro gerado")
-                        .code("FINANCIAL_SUMMARY_FOUND")
-                        .timestamp(LocalDateTime.now())
-                        .path(resolvePath(request))
-                        .data(FinancialSummaryResponse.fromDto(summary))
-                        .build()
-        );
-    }
 
     private String resolvePath(HttpServletRequest request) {
+
         String queryString = request.getQueryString();
-        return queryString == null ? request.getRequestURI() : request.getRequestURI() + "?" + queryString;
+
+        return (queryString == null)
+                ? request.getRequestURI()
+                : request.getRequestURI() + "?" + queryString;
+
     }
+
 }
