@@ -78,8 +78,10 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public CustomerDTO findByCpf(String cpf) {
 
-        Customer customer = customerRepository.findByCpf(cpf)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com CPF: " + cpf));
+        String normalizedCpf = normalizeCpf(cpf);
+
+        Customer customer = customerRepository.findByCpf(normalizedCpf)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com CPF: " + normalizedCpf));
 
         return customerMapper.toDTO(customer);
     }
