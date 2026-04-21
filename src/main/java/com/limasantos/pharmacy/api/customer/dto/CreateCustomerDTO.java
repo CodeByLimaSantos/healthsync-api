@@ -13,12 +13,12 @@ import org.hibernate.validator.constraints.br.CPF;
 @Setter
 public class CreateCustomerDTO {
 
-    @NotBlank(message = "Nome do cliente é obrigatório")
     private String name;
-
-    @CPF(message = "CPF inválido")
-    @NotBlank(message = "CPF é obrigatório")
     private String cpf;
+    private String email;
+    private String phone;
+    private String address;
+
 }
 
 
