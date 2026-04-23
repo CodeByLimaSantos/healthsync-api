@@ -12,6 +12,8 @@
 
 **HealthSync** é uma **API REST robusta e escalável** para gestão completa de farmácias e distribuidoras. Desenvolvida em **Spring Boot 4.0.5**, oferece solução integrada, documentada e pronta para produção.
 
+(FrontEnd finalizado para a maioria dos Endpoints porém em desenvolvimento, para consultar informações sobre o Frontend checar no diretório Frontend que disponibiliza um readme.md específico dedicado ao momento do desenvolvimento).
+
 
 ### Principais Funcionalidades
 
