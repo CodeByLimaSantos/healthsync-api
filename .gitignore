@@ -41,7 +41,5 @@ target/
 mvnw
 mvnw.cmd
 
-# ignora tudo dentro de frontend, em ajustes
 frontend/
 
-docs/

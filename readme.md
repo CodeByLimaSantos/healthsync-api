@@ -508,34 +508,12 @@ class CustomerServiceTest {
 ---
 ## 🔄 Migrations com Flyway
 
-### Estrutura
 
-```
-src/main/resources/db/migration/
-├── V1__Create_users_table.sql
-├── V2__Create_customers_table.sql
-├── V3__Create_products_table.sql
-├── V4__Create_suppliers_table.sql
-├── V5__Create_sales_table.sql
-├── V6__Create_inventory_tables.sql
-├── V7__Create_financials_table.sql
-└── V8__Create_indexes.sql
-```
-
-### Naming Convention
-
-**Padrão:** `V{numero}__{descricao}.sql`
-
-Exemplos corretos:
-- `V1__Initial_schema.sql`
-- `V2__Add_audit_columns.sql`
-- `V3__Create_foreign_keys.sql`
-
-As migrations rodam **automaticamente** ao iniciar a aplicação.
+```As migrations rodam automaticamente ao iniciar a aplicação.```
 
 ---
 
-## 🛠️ Solução de Problemas
+## 🛠️ Solução de Problemas Na Conexão com o MySQL
 
 ### Erro: "Can't connect to MySQL server"
 
@@ -614,83 +592,7 @@ pharmacy-api/
 └── README.md
 ```
 
----
-
-## 📝 Padrões de Código
-
-### Entidade Base
-
-```java
-@Entity
-@Table(name = "TB_exemplo")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Exemplo {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @NotBlank(message = "Campo obrigatório")
-    @Column(nullable = false)
-    private String campo;
-
-    @PrePersist
-    protected void onCreate() {
-        // Lógica de inicialização
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        // Lógica de atualização
-    }
-}
-```
-
-### DTO com Validação
-
-```java
-@Data
-@Builder
-public class ExemploDTO {
-
-    @NotBlank(message = "Campo é obrigatório")
-    private String campo;
-
-    @Positive(message = "Deve ser maior que zero")
-    private BigDecimal valor;
-
-    @Email(message = "Email inválido")
-    private String email;
-}
-```
-
-### Service com Transação
-
-```java
-@Service
-@RequiredArgsConstructor
-@Transactional
-public class ExemploService {
-
-    private final ExemploRepository repository;
-
-    @Transactional(readOnly = true)
-    public List<Exemplo> listar() {
-        return repository.findAll();
-    }
-
-    public Exemplo criar(ExemploDTO dto) {
-        Exemplo exemplo = new Exemplo();
-        // mapear DTO para entidade
-        return repository.save(exemplo);
-    }
-}
-```
-
----
-
+----
 
 
 ## 📄 Licença
